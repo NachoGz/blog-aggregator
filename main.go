@@ -1,13 +1,17 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"os"
 
 	"github.com/NachoGz/blog-aggregator/internal/config"
+	"github.com/NachoGz/blog-aggregator/internal/database"
+	_ "github.com/lib/pq"
 )
 
 type state struct {
+	db  *database.Queries
 	cfg *config.Config
 }
 
@@ -41,6 +45,14 @@ func main() {
 
 	s.cfg = config.Read()
 
+	db, err := sql.Open("postgres", s.cfg.DbUrl)
+	if err != nil {
+		fmt.Println("error opening the db:", err)
+		os.Exit(1)
+	}
+
+	s.db = database.New(db)
+
 	cliArgs := os.Args
 
 	if len(cliArgs) < 2 {
@@ -53,11 +65,26 @@ func main() {
 		args: cliArgs[2:],
 	}
 
-	cmds.register(cmd.name, handleLogin)
+	switch cmd.name {
+	case "login":
+		cmds.register(cmd.name, handleLogin)
+	case "register":
+		cmds.register(cmd.name, handleRegister)
+	case "reset":
+		cmds.register(cmd.name, handleReset)
+	case "users":
+		cmds.register(cmd.name, handlerUsers)
+	case "agg":
+		cmds.register(cmd.name, handleAgg)
+	case "addfeed":
+		cmds.register(cmd.name, handleAddFeed)
+	case "feeds":
+		cmds.register(cmd.name, handlerFeeds)
+	}
 
-	err := cmds.run(&s, cmd)
+	err = cmds.run(&s, cmd)
 	if err != nil {
-		fmt.Printf("error running the command: %v", err)
+		fmt.Println("error running the command: ", err)
 		os.Exit(1)
 	}
 }
