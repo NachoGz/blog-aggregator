@@ -73,15 +73,8 @@ func fetchFeed(ctx context.Context, feedURL string) (*RSSFeed, error) {
 	return feed, nil
 }
 
-func handleAddFeed(s *state, cmd command) error {
-	current_username := s.cfg.CurrentUserName
+func handleAddFeed(s *state, cmd command, current_user database.User) error {
 	name, url := cmd.args[0], cmd.args[1]
-
-	user, err := s.db.GetUser(context.Background(), current_username)
-	if err != nil {
-		log.Println("error fetching user", current_username)
-		return err
-	}
 
 	feed, err := s.db.CreateFeed(context.Background(), database.CreateFeedParams{
 		ID:        uuid.New(),
@@ -90,12 +83,24 @@ func handleAddFeed(s *state, cmd command) error {
 		Name:      name,
 		Url:       url,
 		UserID: uuid.NullUUID{
-			UUID:  user.ID,
+			UUID:  current_user.ID,
 			Valid: true,
 		},
 	})
 	if err != nil {
 		log.Println("error creating feed")
+		return err
+	}
+
+	_, err = s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		UserID:    uuid.NullUUID{UUID: current_user.ID, Valid: true},
+		FeedID:    uuid.NullUUID{UUID: feed.ID, Valid: true},
+	})
+	if err != nil {
+		log.Println("error creating feed follow")
 		return err
 	}
 
