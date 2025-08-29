@@ -1,8 +1,9 @@
-package main
+package handlers
 
 import (
 	"context"
 	"fmt"
+	"github.com/NachoGz/blog-aggregator/internal/types"
 	"log"
 
 	"strconv"
@@ -11,19 +12,19 @@ import (
 	"github.com/google/uuid"
 )
 
-func handleBrowse(s *state, cmd command, current_user database.User) error {
+func HandleBrowse(s *types.State, cmd types.Command, current_user database.User) error {
 	var limit int32
-	if len(cmd.args) == 0 {
+	if len(cmd.Args) == 0 {
 		limit = 2
 	} else {
-		arg, err := strconv.Atoi(cmd.args[0])
+		arg, err := strconv.Atoi(cmd.Args[0])
 		if err != nil {
 			return err
 		}
 		limit = int32(arg)
 	}
 
-	posts, err := s.db.GetPostsFromUser(context.Background(), database.GetPostsFromUserParams{
+	posts, err := s.DB.GetPostsFromUser(context.Background(), database.GetPostsFromUserParams{
 		UserID: uuid.NullUUID{UUID: current_user.ID, Valid: true},
 		Limit:  limit,
 	})

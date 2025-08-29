@@ -1,9 +1,10 @@
-package main
+package handlers
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/NachoGz/blog-aggregator/internal/types"
 	"log"
 	"time"
 
@@ -11,22 +12,22 @@ import (
 	"github.com/google/uuid"
 )
 
-func handleFollow(s *state, cmd command, current_user database.User) error {
-	if len(cmd.args) == 0 {
+func HandleFollow(s *types.State, cmd types.Command, currentUser database.User) error {
+	if len(cmd.Args) == 0 {
 		return errors.New("there are no arguments, one is expected")
 	}
 
-	feed, err := s.db.GetFeedFromURL(context.Background(), cmd.args[0])
+	feed, err := s.DB.GetFeedFromURL(context.Background(), cmd.Args[0])
 	if err != nil {
 		log.Println("error fetching feed")
 		return err
 	}
 
-	_, err = s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
+	_, err = s.DB.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
 		ID:        uuid.New(),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
-		UserID:    uuid.NullUUID{UUID: current_user.ID, Valid: true},
+		UserID:    uuid.NullUUID{UUID: currentUser.ID, Valid: true},
 		FeedID:    uuid.NullUUID{UUID: feed.ID, Valid: true},
 	})
 	if err != nil {
@@ -34,17 +35,17 @@ func handleFollow(s *state, cmd command, current_user database.User) error {
 		return err
 	}
 
-	fmt.Printf("feed %s followed by %s\n", feed.Name, current_user)
+	fmt.Printf("feed %s followed by %s\n", feed.Name, currentUser)
 
 	return nil
 }
 
-func handleFollowing(s *state, cmd command, current_user database.User) error {
-	if len(cmd.args) != 0 {
+func HandleFollowing(s *types.State, cmd types.Command, current_user database.User) error {
+	if len(cmd.Args) != 0 {
 		return errors.New("there are no arguments, one is expected")
 	}
 
-	feeds_followed, err := s.db.GetFeedFollowsForUser(context.Background(), uuid.NullUUID{
+	feedsFollowed, err := s.DB.GetFeedFollowsForUser(context.Background(), uuid.NullUUID{
 		UUID:  current_user.ID,
 		Valid: true,
 	})
@@ -54,23 +55,23 @@ func handleFollowing(s *state, cmd command, current_user database.User) error {
 	}
 
 	fmt.Println("Feeds followed by", current_user.Name)
-	for _, feed_follow := range feeds_followed {
-		fmt.Println("* ", feed_follow.FeedName)
+	for _, feedFollow := range feedsFollowed {
+		fmt.Println("* ", feedFollow.FeedName)
 	}
 
 	return nil
 }
 
-func handleUnfollow(s *state, cmd command, current_user database.User) error {
-	if len(cmd.args) == 0 {
+func HandleUnfollow(s *types.State, cmd types.Command, currentUser database.User) error {
+	if len(cmd.Args) == 0 {
 		return errors.New("there are no arguments, one is expected")
 	}
-	err := s.db.DeleteFeedFollow(context.Background(), database.DeleteFeedFollowParams{
-		Name: current_user.Name,
-		Url:  cmd.args[0],
+	err := s.DB.DeleteFeedFollow(context.Background(), database.DeleteFeedFollowParams{
+		Name: currentUser.Name,
+		Url:  cmd.Args[0],
 	})
 	if err != nil {
-		log.Println("couldn't unfollow", cmd.args[0])
+		log.Println("couldn't unfollow", cmd.Args[0])
 	}
 
 	return nil

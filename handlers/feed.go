@@ -1,10 +1,11 @@
-package main
+package handlers
 
 import (
 	"context"
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"github.com/NachoGz/blog-aggregator/internal/types"
 	"html"
 	"io"
 	"log"
@@ -73,10 +74,10 @@ func fetchFeed(ctx context.Context, feedURL string) (*RSSFeed, error) {
 	return feed, nil
 }
 
-func handleAddFeed(s *state, cmd command, current_user database.User) error {
-	name, url := cmd.args[0], cmd.args[1]
+func HandleAddFeed(s *types.State, cmd types.Command, current_user database.User) error {
+	name, url := cmd.Args[0], cmd.Args[1]
 
-	feed, err := s.db.CreateFeed(context.Background(), database.CreateFeedParams{
+	feed, err := s.DB.CreateFeed(context.Background(), database.CreateFeedParams{
 		ID:        uuid.New(),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
@@ -92,7 +93,7 @@ func handleAddFeed(s *state, cmd command, current_user database.User) error {
 		return err
 	}
 
-	_, err = s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
+	_, err = s.DB.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
 		ID:        uuid.New(),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
@@ -109,19 +110,19 @@ func handleAddFeed(s *state, cmd command, current_user database.User) error {
 	return nil
 }
 
-func handlerFeeds(s *state, cmd command) error {
-	if len(cmd.args) != 0 {
+func HandleFeeds(s *types.State, cmd types.Command) error {
+	if len(cmd.Args) != 0 {
 		return errors.New("no arguments are expected")
 	}
 
-	feeds, err := s.db.GetFeeds(context.Background())
+	feeds, err := s.DB.GetFeeds(context.Background())
 	if err != nil {
 		log.Println("error fetching feeds")
 		return err
 	}
 
 	for _, feed := range feeds {
-		username, err := s.db.GetUserName(context.Background(), feed.UserID.UUID)
+		username, err := s.DB.GetUserName(context.Background(), feed.UserID.UUID)
 		if err != nil {
 			log.Println("erro fetching user", feed.UserID.UUID)
 			return err
