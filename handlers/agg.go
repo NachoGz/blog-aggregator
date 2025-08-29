@@ -1,9 +1,10 @@
-package main
+package handlers
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/NachoGz/blog-aggregator/internal/types"
 	"log"
 	"time"
 
@@ -11,11 +12,11 @@ import (
 	"github.com/google/uuid"
 )
 
-func handleAgg(s *state, cmd command) error {
-	if len(cmd.args) == 0 {
+func HandleAgg(s *types.State, cmd types.Command) error {
+	if len(cmd.Args) == 0 {
 		return errors.New("there are no arguments, one is expected")
 	}
-	timeBetweenRequests, err := time.ParseDuration(cmd.args[0])
+	timeBetweenRequests, err := time.ParseDuration(cmd.Args[0])
 	if err != nil {
 		log.Println("couln't parse time_between_reqs")
 		return err
@@ -28,14 +29,14 @@ func handleAgg(s *state, cmd command) error {
 	}
 }
 
-func scrapeFeeds(s *state) error {
-	nextFeedToFetch, err := s.db.GetNextFeedToFetch(context.Background())
+func scrapeFeeds(s *types.State) error {
+	nextFeedToFetch, err := s.DB.GetNextFeedToFetch(context.Background())
 	if err != nil {
 		log.Println("there is no next feed")
 		return err
 	}
 
-	err = s.db.MarkFeedFetched(context.Background(), nextFeedToFetch.ID)
+	err = s.DB.MarkFeedFetched(context.Background(), nextFeedToFetch.ID)
 	if err != nil {
 		log.Println("couldn't update feed")
 		return err
@@ -49,7 +50,7 @@ func scrapeFeeds(s *state) error {
 
 	// printFeed(feed)
 	for _, item := range feed.Channel.Item {
-		s.db.CreatePost(context.Background(), database.CreatePostParams{
+		s.DB.CreatePost(context.Background(), database.CreatePostParams{
 			ID:          uuid.New(),
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),

@@ -1,9 +1,10 @@
-package main
+package handlers
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/NachoGz/blog-aggregator/internal/types"
 	"log"
 	"time"
 
@@ -11,23 +12,27 @@ import (
 	"github.com/google/uuid"
 )
 
-func handleRegister(s *state, cmd command) error {
-	if len(cmd.args) == 0 {
+func HandleRegister(s *types.State, cmd types.Command) error {
+	if len(cmd.Args) == 0 {
 		return errors.New("there are no arguments, one is expected")
 	}
 
-	user, err := s.db.CreateUser(context.Background(), database.CreateUserParams{
+	user, err := s.DB.CreateUser(context.Background(), database.CreateUserParams{
 		ID:        uuid.New(),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
-		Name:      cmd.args[0],
+		Name:      cmd.Args[0],
 	})
 	if err != nil {
 		log.Println("error creating user")
 		return err
 	}
 
-	s.cfg.SetUser(user.Name)
+	err = s.Cfg.SetUser(user.Name)
+	if err != nil {
+		return err
+	}
+
 	log.Println("the user was created succesfully")
 	printUser(user)
 	return nil

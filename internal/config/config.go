@@ -27,13 +27,13 @@ func getConfigFilePath() (string, error) {
 func Read() *Config {
 	filePath, err := getConfigFilePath()
 	if err != nil {
-		log.Println(err)
+		log.Println("error getting the configuration file path: ", err)
 		return &Config{}
 	}
 
 	jsonFile, err := os.Open(filePath)
 	if err != nil {
-		log.Println(err)
+		log.Println("error opening file:", err)
 		return &Config{}
 	}
 
@@ -43,7 +43,11 @@ func Read() *Config {
 
 	var config Config
 
-	json.Unmarshal(bytes, &config)
+	err = json.Unmarshal(bytes, &config)
+	if err != nil {
+		log.Println("error unmarshaling json:", err)
+		return &Config{}
+	}
 
 	return &config
 }

@@ -3,56 +3,27 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/NachoGz/blog-aggregator/internal/middleware"
+	"github.com/NachoGz/blog-aggregator/internal/types"
 	"os"
 
+	"github.com/NachoGz/blog-aggregator/handlers"
 	"github.com/NachoGz/blog-aggregator/internal/config"
 	"github.com/NachoGz/blog-aggregator/internal/database"
 	_ "github.com/lib/pq"
 )
 
-type state struct {
-	db  *database.Queries
-	cfg *config.Config
-}
-
-type command struct {
-	name string
-	args []string
-}
-
-type commands struct {
-	cmds map[string]func(*state, command) error
-}
-
-func (c *commands) register(name string, f func(*state, command) error) {
-	c.cmds[name] = f
-}
-
-func (c *commands) run(s *state, cmd command) error {
-	f, exists := c.cmds[cmd.name]
-	if !exists {
-		return fmt.Errorf("unknown command: %s", cmd.name)
-	}
-
-	return f(s, cmd)
-}
-
 func main() {
-	var s state
-	var cmds commands
 
-	cmds.cmds = make(map[string]func(*state, command) error)
-
-	s.cfg = config.Read()
-
-	db, err := sql.Open("postgres", s.cfg.DbUrl)
+	s := types.NewState(nil, config.Read())
+	db, err := sql.Open("postgres", s.Cfg.DbUrl)
 	if err != nil {
 		fmt.Println("error opening the db:", err)
 		os.Exit(1)
 	}
+	s.DB = database.New(db)
 
-	s.db = database.New(db)
-
+	commands := types.NewCommands()
 	cliArgs := os.Args
 
 	if len(cliArgs) < 2 {
@@ -60,43 +31,40 @@ func main() {
 		os.Exit(1)
 	}
 
-	cmd := command{
-		name: cliArgs[1],
-		args: cliArgs[2:],
-	}
+	cmd := types.NewCommand(cliArgs[1], cliArgs[2:])
 
 	run := true
 
-	switch cmd.name {
+	switch cmd.Name {
 	case "login":
-		cmds.register(cmd.name, handleLogin)
+		commands.Register(cmd.Name, handlers.HandleLogin)
 	case "register":
-		cmds.register(cmd.name, handleRegister)
+		commands.Register(cmd.Name, handlers.HandleRegister)
 	case "reset":
-		cmds.register(cmd.name, handleReset)
+		commands.Register(cmd.Name, handlers.HandleReset)
 	case "users":
-		cmds.register(cmd.name, handlerUsers)
+		commands.Register(cmd.Name, handlers.HandlerUsers)
 	case "agg":
-		cmds.register(cmd.name, handleAgg)
+		commands.Register(cmd.Name, handlers.HandleAgg)
 	case "addfeed":
-		cmds.register(cmd.name, middlewareLoggedIn(handleAddFeed))
+		commands.Register(cmd.Name, middleware.LoggedIn(handlers.HandleAddFeed))
 	case "feeds":
-		cmds.register(cmd.name, handlerFeeds)
+		commands.Register(cmd.Name, handlers.HandleFeeds)
 	case "follow":
-		cmds.register(cmd.name, middlewareLoggedIn(handleFollow))
+		commands.Register(cmd.Name, middleware.LoggedIn(handlers.HandleFollow))
 	case "following":
-		cmds.register(cmd.name, middlewareLoggedIn(handleFollowing))
+		commands.Register(cmd.Name, middleware.LoggedIn(handlers.HandleFollowing))
 	case "unfollow":
-		cmds.register(cmd.name, middlewareLoggedIn(handleUnfollow))
+		commands.Register(cmd.Name, middleware.LoggedIn(handlers.HandleUnfollow))
 	case "browse":
-		cmds.register(cmd.name, middlewareLoggedIn(handleBrowse))
+		commands.Register(cmd.Name, middleware.LoggedIn(handlers.HandleBrowse))
 	case "help":
 		run = false
 		printUsage()
 	}
 
 	if run {
-		err = cmds.run(&s, cmd)
+		err = commands.Run(s, cmd)
 		if err != nil {
 			fmt.Println("error running the command: ", err)
 			fmt.Println("Run './gator help' for usage.")
@@ -118,7 +86,7 @@ func printUsage() {
 	fmt.Println("\t login	\t sets the current user, usage: ./gator login <username>")
 	fmt.Println("\t register\t adds a new user to the database, usage: ./gator register <username>")
 	fmt.Println("\t users	\t lists all the users in the database, usage: ./gator users")
-	fmt.Println("\t reset	\t resets the state of the database, i.e deletes all users and records associated to them. Usage: ./gator reset")
+	fmt.Println("\t reset	\t resets the types.State of the database, i.e deletes all users and records associated to them. Usage: ./gator reset")
 	fmt.Println("\t agg	\t fetches the RSS feeds, parse them and stores the as posts in the database. Usage: ./gator agg <time-between-reqs>")
 	fmt.Println("\t addfeed\t adds feeds to the database, usage: ./gator addfeed <feed-name> <feed-url>")
 	fmt.Println("\t feeds	\t lists all the feeds in the database, usage: ./gator feeds")

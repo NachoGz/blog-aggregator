@@ -27,26 +27,39 @@ Blog Aggregator is an RSS feed aggregator written in Go. It allows users to regi
 
 3. Set up the database:
 
-   ```sh
-   # Ensure you have a PostgreSQL database running (Postgres v15 or later.)
-   # Update the database URL in the configuration file `~/.gatorconfig.json`.
-   ```
+    Ensure you have a PostgreSQL database running (Postgres v15 or later.)
+    Update the database URL in the configuration file `~/.gatorconfig.json`.
+    Enter psql shell:
+    - Mac: `psql postgres`
+    - Linux: `sudo -u postgres psql`
+    
+   Create a new database named `gator`:
+
+        CREATE DATABASE gator
+    Connect to the database:
+
+    `\c gator`
+
+    Set the user password (Linux only):
+    
+    `ALTER USER postgres PASSWORD 'postgres'`
 
 4. Run database migrations:
 
    ```sh
    cd sql/schema
-   goose up
+   goose postgres <connection-string> up
    ```
+   See the [Configuration](#Configuration) section for more information about the connection string.
 
 5. Build the binary
    ```sh
-   go build ./gator
+   go build ./cmd/gator
    ```
 
 ## Usage
 
-Note: you can replace `./gator` with `go run .`
+Note: you can replace `./gator` with `go run ./cmd/gator`
 
 ### Commands
 
@@ -68,7 +81,7 @@ Note: you can replace `./gator` with `go run .`
   ./gator users
   ```
 
-- **reset**: Reset the state of the database (delete all users and associated records).
+- **reset**: Reset the types.State of the database (delete all users and associated records).
 
   ```sh
   ./gator reset
@@ -119,8 +132,8 @@ Note: you can replace `./gator` with `go run .`
 
 Create a configuration file `~/.gatorconfig.json` in your home directory with the following content:
 
-The database URL should be of this format `protocol://username:password@host:port/database?sslmode=disable`
-
+The database URL should be of this format `protocol://username:password@host:port/database?sslmode=disable` (Linux) or `protocol://username@host:port/database` (Mac).
+Leave the `current_user_name` field empty.
 ```json
 {
   "db_url": "your_database_url",

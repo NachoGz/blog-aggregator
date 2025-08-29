@@ -1,24 +1,26 @@
-package main
+package handlers
 
 import (
 	"context"
 	"errors"
 	"fmt"
 	"log"
+
+	"github.com/NachoGz/blog-aggregator/internal/types"
 )
 
-func handleLogin(s *state, cmd command) error {
-	if len(cmd.args) == 0 {
+func HandleLogin(s *types.State, cmd types.Command) error {
+	if len(cmd.Args) == 0 {
 		return errors.New("there are no arguments, one is expected")
 	}
 
-	user, err := s.db.GetUser(context.Background(), cmd.args[0])
+	user, err := s.DB.GetUser(context.Background(), cmd.Args[0])
 	if err != nil {
 		log.Println("error fetching user")
 		return err
 	}
 
-	err = s.cfg.SetUser(user.Name)
+	err = s.Cfg.SetUser(user.Name)
 	if err != nil {
 		fmt.Printf("error setting user: %v", err)
 		return err
